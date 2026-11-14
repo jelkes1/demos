@@ -51,6 +51,7 @@ jobs:
         with:
           node-version: 22
       - name: Update all demos and gallery version labels
+        id: dependencies
         env:
           SUPERDOC_VERSION: ${{ inputs.version }}
         run: node scripts/update-superdoc.mjs "$SUPERDOC_VERSION"
@@ -65,7 +66,7 @@ jobs:
           COLLAB_API_URL: ${{ vars.COLLAB_API_URL || 'https://canonical-collab-demo-backend-production.up.railway.app' }}
         run: |
           bun run --cwd rag build:web
-          pnpm --dir superdoc-inline-revisions build
+          pnpm --dir custom-word-editor build
           pnpm --dir template-builder-document-api-v2-demo build
           BASE_PATH=/version-history/ pnpm --dir version-history build
           pnpm --dir version-history test:server
@@ -74,7 +75,7 @@ jobs:
       - name: Run unit tests when present
         run: |
           node scripts/run-optional-tests.mjs rag unit bun
-          node scripts/run-optional-tests.mjs superdoc-inline-revisions unit pnpm
+          node scripts/run-optional-tests.mjs custom-word-editor unit pnpm
           node scripts/run-optional-tests.mjs template-builder-document-api-v2-demo unit pnpm
           node scripts/run-optional-tests.mjs canonical-collaboration-demo/client unit npm
       - name: Install browser test runner
@@ -89,11 +90,22 @@ jobs:
       - name: Run demo-specific browser tests when present
         run: |
           node scripts/run-optional-tests.mjs rag browser bun
-          node scripts/run-optional-tests.mjs superdoc-inline-revisions browser pnpm
+          node scripts/run-optional-tests.mjs custom-word-editor browser pnpm
           node scripts/run-optional-tests.mjs template-builder-document-api-v2-demo browser pnpm
           node scripts/run-optional-tests.mjs canonical-collaboration-demo/client browser npm
           pnpm --dir version-history exec playwright install --with-deps chromium
           node scripts/run-optional-tests.mjs version-history browser pnpm
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: superdoc-update-browser-failures-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            tests/test-results/
+            custom-word-editor/test-results/
+            version-history/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Rebuild DocRAG for its production base path
         working-directory: rag
         env:
@@ -117,13 +129,14 @@ jobs:
           retention-days: 7
       - name: Commit update to main
         if: ${{ !inputs.dry_run }}
+        env:
+          SUPERDOC_VERSION: ${{ steps.dependencies.outputs.version }}
         run: |
-          resolved=$(node -p "require('./superdoc-inline-revisions/node_modules/superdoc/package.json').version")
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add --pathspec-from-file=.github/superdoc-update-files.txt
           if ! git diff --cached --quiet; then
-            git commit -m "chore: update SuperDoc to ${resolved}"
+            git commit -m "chore: update SuperDoc to ${SUPERDOC_VERSION}"
             git push origin HEAD:main
           fi
       - name: Capture tested source revision

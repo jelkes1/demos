@@ -45,8 +45,8 @@ export async function renderGallery({ mode, output, root = defaultRoot }) {
     .map(async (demo) => [demo.id, await readBuildCommand(root, demo)])));
 
   const versionEntries = mode === "local"
-    ? manifest.filter((demo) => demo.localSourceDirectory && demo.versioned !== false)
-    : manifest.filter((demo) => demo.versioned !== false);
+    ? manifest.filter((demo) => demo.localSourceDirectory)
+    : manifest;
   const installed = await Promise.all(versionEntries.map(async (demo) => {
     const packageJson = await readFile(
       path.join(root, demo.packageDirectory, "node_modules", "superdoc", "package.json"),
@@ -56,16 +56,20 @@ export async function renderGallery({ mode, output, root = defaultRoot }) {
     assertExceptionVersion(exceptions, demo.packageDirectory, version);
     return { demo, version };
   }));
-  const versions = installed.filter(({ demo }) => !exceptions.has(demo.packageDirectory)).map(({ version }) => version);
+  const versions = installed.filter(({ demo }) => demo.versioned !== false && !exceptions.has(demo.packageDirectory)).map(({ version }) => version);
   if (new Set(versions).size !== 1) {
     throw new Error(`Demos resolved different SuperDoc versions: ${versions.join(", ")}`);
+  }
+  const checkedDemoIds = new Set(installed.map(({ demo }) => demo.id));
+  for (const demo of visibleDemos.filter((demo) => !checkedDemoIds.has(demo.id))) {
+    const packageJson = JSON.parse(await readFile(path.join(root, demo.packageDirectory, "package.json"), "utf8"));
+    const version = packageJson.dependencies?.superdoc;
+    if (!version) throw new Error(`${demo.id}: missing SuperDoc dependency`);
+    assertExceptionVersion(exceptions, demo.packageDirectory, version);
   }
 
   const backgrounds = visibleDemos.map((_, index) =>
     `    <div class="background placeholder${index === 0 ? " active" : ""}"></div>`,
-  ).join("\n");
-  const selectors = visibleDemos.map((demo, index) =>
-    `        <button class="demo-selector${index === 0 ? " active" : ""}" type="button" aria-label="Show ${escapeHtml(demo.title)}" aria-pressed="${index === 0}"></button>`,
   ).join("\n");
   const cards = visibleDemos.map((demo, index) => {
     const liveUri = mode === "local" && demo.localLiveDemoUri
@@ -81,14 +85,13 @@ export async function renderGallery({ mode, output, root = defaultRoot }) {
         <div class="demo-card">
           <a class="card-main-link" href="${escapeHtml(liveUri)}" aria-label="Open ${escapeHtml(demo.title)} demo"></a>
           <div class="card-media"><img class="card-poster" src="/${escapeHtml(demo.screenshot)}" alt="${escapeHtml(demo.title)} demo preview">${video}</div>
-          <div class="card-body"><h2>${escapeHtml(demo.title)}</h2><p>${escapeHtml(demo.description)}</p><div class="card-actions"><a href="${escapeHtml(liveUri)}">Live demo</a><span>|</span><a href="${escapeHtml(demo.sourceUri)}" target="_blank" rel="noopener noreferrer">Source</a>${buildButton}</div></div>
+          <div class="card-body"><h2>${escapeHtml(demo.title)}</h2><p>${escapeHtml(demo.description)}</p><div class="card-footer"><div class="card-actions"><a href="${escapeHtml(liveUri)}">Live demo</a><span>|</span><a href="${escapeHtml(demo.sourceUri)}" target="_blank" rel="noopener noreferrer">Source</a>${buildButton}</div></div></div>
         </div>
       </article>`;
   }).join("\n");
 
   let html = await readFile(path.join(root, "dist-landing", "index.html"), "utf8");
   html = replaceSection(html, "DEMO_BACKGROUNDS", backgrounds);
-  html = replaceSection(html, "DEMO_SELECTORS", selectors);
   html = replaceSection(html, "DEMO_CARDS", cards);
   html = replaceSection(html, "BUILD_DIALOGS", visibleDemos.filter((demo) => buildCommands.has(demo.id))
     .map((demo) => renderBuildDialog(demo, buildCommands.get(demo.id))).join("\n"));

@@ -54,7 +54,7 @@ Start with [the integration guide](docs/customer-integration.md) and consult the
 - Agent citation and footnote insertion uses the SDK Full toolkit and its targeting
   contracts. Inspect targets and preserve exact source IDs, fresh revisions,
   host-enforced tracked/direct modes, verification receipts, no-duplicate handling,
-  and bounded retries. SDK 2.28.0 citation insertion is direct-only; Reviewing mode
+  and bounded retries. SDK 2.29.0-next.14 citation insertion is direct-only; Reviewing mode
   must reject it rather than silently applying a direct edit. Metadata creation
   is distinct from inserting a citation. Do not substitute imitation citations/notes.
 - Await reference work before replacing/closing a document. The revision check and

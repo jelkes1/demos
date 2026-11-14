@@ -138,7 +138,7 @@ For citations, discover the native insertion schema with `superdoc_api_search`, 
 call it with `superdoc_api_call`. Follow the SDK's targeting contract, inspect the
 requested location, copy real source IDs, and verify the native result. The removed
 custom insertion tools' semantic-anchor schemas and placement receipts do not apply
-to these agent calls. SDK 2.28.0 marks citation insertion as direct-only: Reviewing
+to these agent calls. SDK 2.29.0-next.14 marks citation insertion as direct-only: Reviewing
 mode must refuse it. Footnote insertion supports tracked mode.
 
 The reference library reads the authoritative native source list. Agents use native
@@ -223,10 +223,10 @@ UTF-16 offsets. Agent insertion follows the SDK Full toolkit targeting contract.
 
 ## Versions, assets, and verification
 
-Current pinned packages: server `@superdoc/sdk` 2.28.0; browser `superdoc` 2.31.0, React 19;
+The demo follows the published Next channel for agent presence. Current pinned packages: server `@superdoc/sdk` 2.29.0-next.14; browser `superdoc` 2.32.0-next.14, React 19;
 JSZip 3.10.1; citeproc 2.4.63; `@xmldom/xmldom` 0.9.12. Server modules are ESM and
 require Node 22+; direct TypeScript tests use Node 24. The demo mounts its editor with
-`@superdoc/react` 2.26.0; browser adapters require only the SuperDoc instance. Keep
+`@superdoc/react` 2.27.0-next.14; browser adapters require only the SuperDoc instance. Keep
 `server/src/reference-integration/assets/csl/` and its attribution/license links with
 the renderer. The [inventory](reference-integration.md) records each fix's reason and
 removal condition. Revalidate fixes individually when changing SuperDoc versions.
